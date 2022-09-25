@@ -43,10 +43,12 @@ public class TimeslotController {
 	
 	private SimpleDateFormat timeslotFileFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 	
+	private final String TIMESLOTS_JSON = "timeslots.json";
+	
 	@PostConstruct
 	private void init() {
 		try {
-			File file = ResourceUtils.getFile("classpath:timeslots.json");
+			File file = ResourceUtils.getFile("classpath:"+TIMESLOTS_JSON);
 			//Read File Content
 			String content = new String(Files.readAllBytes(file.toPath()));
 			List<TimeslotData> timeslotsFromFile = parseTimeslotJsonToObjects(content);
@@ -60,6 +62,20 @@ public class TimeslotController {
 		}
 	}
 
+	/**
+	 * 
+	 * @param timeslotId
+	 * @return
+	 */
+	public synchronized boolean bookTimeslot(long timeslotId) {
+		TimeslotEntity timelsot = timeslotService.findById(timeslotId);
+		if(timelsot.getBookedDeliveriesAmount() < 2) {
+			timelsot.setBookedDeliveriesAmount(timelsot.getBookedDeliveriesAmount()+1);
+			return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * 
 	 * @param timeslots
@@ -98,7 +114,7 @@ public class TimeslotController {
 		JSONObject timeslotJson;
 		for(int i = 0; i < timeslotsJsonArray.length(); i++) {
 
-			timeslotJson = timeslotsJsonArray.getJSONObject(0);
+			timeslotJson = timeslotsJsonArray.getJSONObject(i);
 			long startTime = getTimeFromString(externalAPIController.getPropertyFromJsonObject(timeslotJson, "startTime"), timeslotFileFormatter);
 			long endTime = getTimeFromString(externalAPIController.getPropertyFromJsonObject(timeslotJson, "endTime"), timeslotFileFormatter);
 	
@@ -167,12 +183,19 @@ public class TimeslotController {
 	 * @throws JSONException
 	 */
 	private List<HolidayData> convertHolidaysAPIResponseJsonToHolidaysData(JSONArray holidays) throws ParseException, JSONException {
+		
 		List<HolidayData> holidaysList = new ArrayList<>();
 		for(int i = 0; i < holidays.length(); i++) {
 			JSONObject holiday = holidays.getJSONObject(i);
 			String dateString = externalAPIController.getPropertyFromJsonObject(holiday, "date");
 			holidaysList.add(new HolidayData(getTimeFromString(dateString, formatter)));
 		}
+		
+		// sort holidays list
+		holidaysList = holidaysList.stream()
+									.sorted(Comparator.comparing(HolidayData::getStartTime))
+									.collect(Collectors.toList());
+
 		return holidaysList;
 	}
 	
@@ -193,7 +216,7 @@ public class TimeslotController {
 		
 		timeslotDataList = timeslotDataObjects.stream()
 				.sorted(Comparator.comparing(TimeslotData::getStartTime))
-				.filter(tsd -> timeslotNotOverlapsHoliday(tsd, holidaysList))
+				.filter(tsd -> !timeslotOverlapsHoliday(tsd, holidaysList))
 				.collect(Collectors.toList());
 		
 		return timeslotDataList;
@@ -205,19 +228,14 @@ public class TimeslotController {
 	 * @param holidaysList
 	 * @return
 	 */
-	private boolean timeslotNotOverlapsHoliday(TimeslotData tsd, List<HolidayData> holidaysList) {
-		boolean foundOverlapBetweenTimeRanges = false;
-		List<HolidayData> holidaysDataList = holidaysList.stream()
-				.sorted(Comparator.comparing(HolidayData::getStartTime))
-				.collect(Collectors.toList());
-		for(HolidayData holiday : holidaysDataList) {
+	private boolean timeslotOverlapsHoliday(TimeslotData tsd, List<HolidayData> holidaysList) {
+		return holidaysList.stream().anyMatch(holiday -> {
 			if(tsd.getStartTime() <= holiday.getEndTime() 
 				&& holiday.getStartTime() <= tsd.getEndTime()) {
-				foundOverlapBetweenTimeRanges = true;
-				break;
+				return true;
 			}
-		}
-		return !foundOverlapBetweenTimeRanges;
+			return false;
+		});
 	}
 	
 }

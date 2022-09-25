@@ -3,6 +3,16 @@
 	"startTime": "2021-09-02 10:00",
 	"endTime": "2021-09-03 10:00",
 	"supportedDeliveryStates": ["Tel Aviv District", "Haifa District"]
+},
+{
+	"startTime": "2021-09-05 10:00",
+	"endTime": "2021-09-07 10:00",
+	"supportedDeliveryStates": ["Beer Sheva District", "Haifa District"]
+},
+{
+	"startTime": "2021-09-12 10:00",
+	"endTime": "2021-09-13 10:00",
+	"supportedDeliveryStates": ["Tel Aviv District"]
 }
 ]
 	
