@@ -25,9 +25,15 @@ public class DeliveryController {
 	 * @param deliveryToAdd
 	 */
 	public void addDelivery(DeliveryData deliveryToAdd) {
-		DeliveryEntity entity = new DeliveryEntity(deliveryToAdd);
-		if(timeslotController.bookTimeslot(deliveryToAdd.getTimeslotId())) {
-			deliveryService.save(entity);
+		try {
+			DeliveryEntity entity = new DeliveryEntity(deliveryToAdd);
+			if(timeslotController.bookTimeslot(deliveryToAdd.getTimeslotId())) {
+				deliveryService.save(entity);
+			} else {
+				logger.info("Unable to book a timeslot with id {}, fully booked.");
+			}
+		} catch(Exception e) {
+			logger.error("Error on book delivery.", e);
 		}
 	}
 	

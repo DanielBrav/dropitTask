@@ -15,6 +15,8 @@ import javax.annotation.PostConstruct;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ResourceUtils;
@@ -45,6 +47,8 @@ public class TimeslotController {
 	
 	private final String TIMESLOTS_JSON = "timeslots.json";
 	
+	Logger logger = LoggerFactory.getLogger(TimeslotController.class);
+
 	@PostConstruct
 	private void init() {
 		try {
@@ -58,7 +62,7 @@ public class TimeslotController {
 			saveTimeslots(timeslotsFromFile);
 			
 		} catch(Exception e) {
-			System.out.println("Error on load and parse timeslots");
+			logger.error("Error on load and parse timeslots", e);
 		}
 	}
 
