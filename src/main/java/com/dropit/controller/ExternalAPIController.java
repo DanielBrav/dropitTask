@@ -7,6 +7,8 @@ import java.time.temporal.TemporalAdjusters;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.client.RestTemplate;
 
@@ -23,14 +25,21 @@ public class ExternalAPIController {
 	
 	private RestTemplate restTemplate = new RestTemplate();
 	
+	Logger logger = LoggerFactory.getLogger(ExternalAPIController.class);
+	
 	/**
 	 * 
 	 * @param address
 	 * @return
 	 */
 	public String getGeoData(String address) {
-		String url = GEO_API_URL.replace("{text}", address);
-		String response = restTemplate.getForObject(url, String.class);
+		String response = "";
+		try {
+			String url = GEO_API_URL.replace("{text}", address);
+			response = restTemplate.getForObject(url, String.class);
+		} catch (Exception e) {
+			logger.error("Error at getGeoData", e);
+		}
 		return response;
 	}
 	
@@ -43,7 +52,7 @@ public class ExternalAPIController {
 		LocalDate dt = LocalDate.now();   
 		LocalDate nextSaturday = dt.with(TemporalAdjusters.next(DayOfWeek.SATURDAY));
 		
-		int year = dt.getYear()-1; // TODO: remo
+		int year = dt.getYear();
 		int month = dt.getMonthValue();
 		
 		// As mentioned in the task, "upcoming week" can be in the next month/year
@@ -55,12 +64,12 @@ public class ExternalAPIController {
 		String url;
 		JSONArray holidaysJsonArray = new JSONArray();
 
-		/*
+		
 		if(nextSaturdayYear != year || nextSaturdayMonth != month) {
 			url = HOLIDAY_API_URL + "&year=" + nextSaturdayYear + "&month=" + nextSaturdayMonth;
 			addHolidaysFromAPI(holidaysJsonArray, url);
 		}
-		*/
+		
 		
 		url = HOLIDAY_API_URL + "&year=" + year + "&month=" + month;
 		addHolidaysFromAPI(holidaysJsonArray, url);
@@ -75,10 +84,14 @@ public class ExternalAPIController {
 	 * @throws JSONException
 	 */
 	private void addHolidaysFromAPI(JSONArray holidaysJsonArray, String url) throws JSONException {
-		String response = restTemplate.getForObject(url, String.class);
-		JSONObject responseJsonObject = new JSONObject(response);
-		JSONArray holidays = new JSONArray(getPropertyFromJsonObject(responseJsonObject, "holidays"));
-		addObjectsToJsonArray(holidaysJsonArray, holidays);
+		try {
+			String response = restTemplate.getForObject(url, String.class);
+			JSONObject responseJsonObject = new JSONObject(response);
+			JSONArray holidays = new JSONArray(getPropertyFromJsonObject(responseJsonObject, "holidays"));
+			addObjectsToJsonArray(holidaysJsonArray, holidays);
+		} catch (Exception e) {
+			logger.error("Error at addHolidaysFromAPI.", e);
+		}
 	}
 	
 	/**
